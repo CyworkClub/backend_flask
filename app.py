@@ -28,8 +28,13 @@ def init_db():
 
 @app.route("/register", methods=["POST"])
 def register():
-    email = request.form.get("email")
-    password = request.form.get("password")
+    if request.is_json:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
+    else:
+        email = request.form.get("email")
+        password = request.form.get("password")
 
     if not email or not password:
         return jsonify({"message": "Champs manquants"}), 400
