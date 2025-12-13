@@ -5,7 +5,6 @@ import os
 
 app = Flask(__name__)
 
-# URL de la base (Render la fournira dans les variables d’environnement)
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_conn():
@@ -18,7 +17,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             email VARCHAR(255) UNIQUE,
-            password VARCHAR(255)
+            password VARCHAR(255),
+            password_plain VARCHAR(255)
         );
     """)
     conn.commit()
@@ -33,15 +33,15 @@ def register():
     if not email or not password:
         return jsonify({"message": "Champs manquants"}), 400
 
-    hashed = hashlib.sha256(password.encode()).hexdigest()
+    password_hashed = hashlib.sha256(password.encode()).hexdigest()
 
     try:
         conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO users (email, password)
-            VALUES (%s, %s);
-        """, (email, hashed))
+            INSERT INTO users (email, password, password_plain)
+            VALUES (%s, %s, %s);
+        """, (email, password_hashed, password))
         conn.commit()
         cur.close()
         conn.close()
