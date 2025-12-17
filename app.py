@@ -7,6 +7,8 @@ import os
 app = Flask(__name__)
 CORS(app)
 DATABASE_URL = os.getenv("DATABASE_URL")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET")
+
 
 
 def get_conn():
@@ -58,32 +60,32 @@ def register():
         return jsonify({"message": str(e)}), 400
 @app.route("/users", methods=["GET"])
 def get_users():
-    try:
-        conn = get_conn()
-        cur = conn.cursor()
+    secret = request.headers.get("X-ADMIN-SECRET")
 
-        # 👇 récupérer email, password haché et password en clair
-        cur.execute("""
-            SELECT email, password, password_plain
-            FROM users;
-        """)
-        rows = cur.fetchall()
+    if secret != ADMIN_SECRET:
+        return jsonify({"message": "Accès interdit"}), 403
 
-        cur.close()
-        conn.close()
+    conn = get_conn()
+    cur = conn.cursor()
 
-        users = []
-        for row in rows:
-            users.append({
-                "email": row[0],
-                "password": row[1],          # password haché
-                "password_plain": row[2]     # password en clair
-            })
+    cur.execute("""
+        SELECT email, password, password_plain
+        FROM users;
+    """)
+    rows = cur.fetchall()
 
-        return jsonify(users)
+    cur.close()
+    conn.close()
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    users = []
+    for row in rows:
+        users.append({
+            "email": row[0],
+            "password": row[1],
+            "password_plain": row[2]
+        })
+
+    return jsonify(users)
 
 
 if __name__ == "__main__":
